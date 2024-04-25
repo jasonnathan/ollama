@@ -31,6 +31,36 @@ var (
 	errInvalidRole = errors.New("role must be one of \"system\", \"user\", or \"assistant\"")
 )
 
+func Format(cmds []Command) string {
+	var b bytes.Buffer
+	for _, cmd := range cmds {
+		name := cmd.Name
+		args := cmd.Args
+
+		switch cmd.Name {
+		case "model":
+			name = "from"
+			args = cmd.Args
+		case "license", "template", "system", "adapter":
+			// pass
+		case "message":
+			role, message, _ := strings.Cut(cmd.Args, ":")
+			args = role + message
+		default:
+			name = "parameter"
+			args = cmd.Name + " " + cmd.Args
+		}
+
+		if strings.Contains(args, "\n") || strings.HasSuffix(args, " ") {
+			args = strconv.Quote(args)
+		}
+
+		fmt.Fprintln(&b, strings.ToUpper(name), args)
+	}
+
+	return b.String()
+}
+
 func Parse(r io.Reader) (cmds []Command, err error) {
 	var cmd Command
 	var curr state
